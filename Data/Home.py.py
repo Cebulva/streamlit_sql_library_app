@@ -33,17 +33,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Library Overview Metrics ---
-with st.expander("Library Overview", expanded=True):
-    available_books = total_books - borrowed_books
-    overdue_books = Read.count_overdue_books()
-
-    col1, col2 = st.columns(2)
-    col1.metric("Available", available_books)
-    col2.metric("Overdue", overdue_books)
-
-st.markdown("---")
-
 # --- Daily Reminders Section ---
 st.subheader("Daily Reminders 🗓️")
 reminders_df = Read.get_daily_reminders()
