@@ -119,14 +119,13 @@ def read_books() -> pd.DataFrame:
         return pd.read_sql(query, conn)
 
 
-def count_books(engine: Engine) -> int:
-    """Return total count of books in the library."""
-    if engine is None or Books is None:
+def count_books() -> int:
+    eng = _get_engine()
+    if not eng or Books is None:
         return 0
 
     query = select(func.count()).select_from(Books)
-
-    with engine.connect() as conn:
+    with eng.connect() as conn:
         result = conn.execute(query)
         return result.scalar_one()
 
