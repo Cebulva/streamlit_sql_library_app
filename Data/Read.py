@@ -144,4 +144,105 @@ def get_borrowed_books(friend_id: int) -> pd.DataFrame:
     if not engine:
         return pd.DataFrame()
     query = text("""
-        SELECT B.ISBN, B.Title F
+        SELECT B.ISBN, B.Title FROM Loans L JOIN Books B ON L.ISBN = B.ISBN
+        WHERE L.FriendID = :friend_id ORDER BY B.Title
+    """)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn, params={"friend_id": friend_id})
+            df['display'] = df['Title'] + ' (ISBN: ' + df['ISBN'] + ')'
+            return df
+    except Exception as e:
+        st.error(f"Error fetching borrowed books: {e}")
+        return pd.DataFrame()
+
+def get_loan_friends() -> pd.DataFrame:
+    """Fetch unique friends with current loans."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("""
+        SELECT DISTINCT FriendID, FName, LName 
+        FROM Loans 
+        JOIN Friends USING (FriendID) 
+        ORDER BY FName, LName
+    """)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+            df['display'] = df['FName'] + ' ' + df['LName'] + ' (ID: ' + df['FriendID'].astype(str) + ')'
+            return df
+    except Exception as e:
+        st.error(f"Error fetching friends with loans: {e}")
+        return pd.DataFrame()
+
+def get_loan_overdues() -> pd.DataFrame:
+    """Fetch overdue loans with friend and book details."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("""
+        SELECT LoanID, DueDate, FriendID, FName, LName, Title, Loans.ISBN 
+        FROM Loans
+        JOIN Books USING (ISBN)
+        JOIN Friends USING (FriendID)
+        WHERE DueDate < datetime('now') AND Returned = 0
+    """)
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
+
+def get_friend_contact_info(friend_id: int) -> pd.DataFrame:
+    """Fetch contact details for a friend."""
+    if not friend_id:
+        return pd.DataFrame()
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("SELECT ContactID, type, contact FROM Contacts WHERE FriendID = :friend_id")
+    try:
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn, params={"friend_id": friend_id})
+    except Exception as e:
+        st.error(f"Error fetching contact info: {e}")
+        return pd.DataFrame()
+
+def get_friend_max_loans(friend_id: int):
+    """Fetch MaxLoans value for a friend."""
+    if not friend_id:
+        return None
+    engine = _get_engine()
+    if not engine:
+        return None
+    query = text("SELECT MaxLoans FROM Friends WHERE FriendID = :friend_id")
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn, params={"friend_id": friend_id})
+            if not df.empty:
+                return df["MaxLoans"].iloc[0]
+            return None
+    except Exception:
+        return None
+
+def get_daily_reminders() -> pd.DataFrame:
+    """Fetch loans with reminder date of today."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("""
+        SELECT 
+            L.LoanID, L.DueDate, 
+            F.FriendID, F.FName, F.LName, 
+            B.Title,
+            C.type, C.contact
+        FROM Loans L
+        JOIN Friends F ON L.FriendID = F.FriendID
+        JOIN Books B ON L.ISBN = B.ISBN
+        JOIN Contacts C ON L.FriendID = C.FriendID
+        WHERE date(L.ReturnReminder) = date('now')
+    """)
+    try:
+        with engine.connect() as conn:
+            return pd.read_sql(query, conn)
+    except Exception as e:
+        st.error(f"Error fetching reminders: {e}")
+        return pd.DataFrame()
