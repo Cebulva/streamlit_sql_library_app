@@ -35,16 +35,12 @@ st.markdown(
 
 # --- Library Overview Metrics ---
 with st.expander("Library Overview", expanded=True):
-    total_books = Read.count_books()
-    borrowed_books = Read.count_borrowed_books()
     available_books = total_books - borrowed_books
     overdue_books = Read.count_overdue_books()
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Books", total_books)
-    col2.metric("Borrowed", borrowed_books)
-    col3.metric("Available", available_books)
-    col4.metric("Overdue", overdue_books)
+    col1, col2 = st.columns(2)
+    col1.metric("Available", available_books)
+    col2.metric("Overdue", overdue_books)
 
 st.markdown("---")
 
