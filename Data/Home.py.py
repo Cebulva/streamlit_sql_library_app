@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, os, streamlit as st
 import os
 
 import streamlit as st
@@ -14,7 +14,17 @@ db_path = os.path.join(os.path.dirname(__file__), "library.db")
 # db_path = os.path.join(os.path.dirname(__file__), "Data", "library.db")
 
 #debug 
-st.write("Engine URL:", str(engine.url))
+db_path = os.path.join(os.path.dirname(__file__), "library.db")  # adjust if needed
+
+try:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM Books")
+    count = cursor.fetchone()[0]
+    conn.close()
+    st.success(f"Count from Books: {count}")
+except Exception as e:
+    st.error(f"SQLite error: {e}")
 
 # --- Page Configuration ---
 st.set_page_config(
