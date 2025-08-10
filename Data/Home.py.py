@@ -181,4 +181,5 @@ if st.session_state.show_add_friend:
     with st.expander("Add a New Friend", expanded=True):
         if 'home_new_contacts' not in st.session_state:
             st.session_state.home_new_contacts = [{"type": "", "contact": ""}]
-        if 'home_add_fname' not in st.session
+        if 'home_add_fname' not in st.session_state:
+            st.session_state.home_add_fname = ""
