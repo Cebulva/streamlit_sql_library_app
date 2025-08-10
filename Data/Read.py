@@ -76,15 +76,19 @@ def read_books() -> pd.DataFrame:
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
-def count_books() -> int:
-    """Count total books."""
-    engine = _get_engine()
-    if not engine:
+def count_books():
+    if "engine" not in st.session_state or st.session_state.engine is None:
+        st.error("Database connection not found.")
         return 0
+    engine = st.session_state.engine
     query = "SELECT COUNT(*) AS count FROM Books"
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-        return int(df["count"].iloc[0]) if not df.empty else 0
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+            return int(df["count"].iloc[0]) if not df.empty else 0
+    except Exception as e:
+        st.error(f"Database error: {e}")
+        return 0
 
 def count_borrowed_books() -> int:
     """Count total borrowed books (loans)."""
