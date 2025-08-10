@@ -8,8 +8,8 @@ import Write
 from datetime import datetime, timedelta
 
 #debug:
-  tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
-    print(tables)
+tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
+print(tables)
 
 # Path to your database file in the repo
 db_path = os.path.join(os.path.dirname(__file__), "library.db")
