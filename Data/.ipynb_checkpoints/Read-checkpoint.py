@@ -1,112 +1,147 @@
-# Read.py
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from sqlalchemy import text
-from library_connection import engine
 
+def _get_engine():
+    engine = st.session_state.get("engine")
+    if engine is None:
+        st.error("Database connection not found.")
+    return engine
 
-def _run_query_df(sql, params=None):
-    """Run a SQL query and return a Pandas DataFrame with a fresh connection."""
+def list_books() -> pd.DataFrame:
+    """Retrieve all books from the database."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    with engine.connect() as conn:
+        return pd.read_sql("SELECT * FROM Books", conn)
+
+def list_loans() -> pd.DataFrame:
+    """Retrieve all active loans with friend and book details."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = """
+        SELECT LoanID, FriendID, FName, LName, BorrowDate, DueDate, ReturnReminder, Title, Loans.ISBN
+        FROM Loans
+        JOIN Books USING (ISBN)
+        JOIN Friends USING (FriendID)
+    """
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
+
+def loan_exists(LoanID: int) -> bool:
+    """Check if a loan with LoanID exists."""
+    engine = _get_engine()
+    if not engine:
+        return False
+    query = text("SELECT 1 FROM Loans WHERE LoanID = :LoanID LIMIT 1")
+    with engine.connect() as conn:
+        return conn.execute(query, {"LoanID": LoanID}).fetchone() is not None
+
+def book_exists(isbn: str) -> bool:
+    """Check if a book with ISBN exists."""
+    engine = _get_engine()
+    if not engine:
+        return False
+    query = text("SELECT 1 FROM Books WHERE ISBN = :isbn LIMIT 1")
+    with engine.connect() as conn:
+        return conn.execute(query, {"isbn": isbn}).fetchone() is not None
+
+def read_all_books() -> pd.DataFrame:
+    """Read all books ordered by title."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    with engine.connect() as conn:
+        return pd.read_sql("SELECT * FROM Books ORDER BY Title", conn)
+
+def read_books() -> pd.DataFrame:
+    """Read books with formatted location and condition."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = """
+        SELECT 
+            ISBN, 
+            Title, 
+            Author, 
+            Genre, 
+            IsInStock, 
+            BookCondition AS 'Condition', 
+            ShelfLocation || ' ' || ShelfRow AS Location 
+        FROM Books 
+        ORDER BY Title
+    """
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
+
+def count_books() -> int:
+    """Count total books."""
+    engine = _get_engine()
+    if not engine:
+        return 0
+    query = "SELECT COUNT(*) AS count FROM Books"
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+        return int(df["count"].iloc[0]) if not df.empty else 0
+
+def count_borrowed_books() -> int:
+    """Count total borrowed books (loans)."""
+    engine = _get_engine()
+    if not engine:
+        return 0
+    query = "SELECT COUNT(*) AS count FROM Loans"
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+        return int(df["count"].iloc[0]) if not df.empty else 0
+
+def count_overdue_books() -> int:
+    """Count loans overdue (DueDate < today)."""
+    engine = _get_engine()
+    if not engine:
+        return 0
+    query = "SELECT COUNT(*) AS count FROM Loans WHERE DueDate < date('now') AND Returned = 0"
+    with engine.connect() as conn:
+        df = pd.read_sql(query, conn)
+        return int(df["count"].iloc[0]) if not df.empty else 0
+
+def get_friends() -> pd.DataFrame:
+    """Fetch all friends with display name."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("SELECT FriendID, FName, LName, MaxLoans FROM Friends ORDER BY FName, LName")
     try:
         with engine.connect() as conn:
-            return pd.read_sql(text(sql), conn, params=params)
+            df = pd.read_sql(query, conn)
+            df['display'] = df['FName'] + ' ' + df['LName'] + ' (ID: ' + df['FriendID'].astype(str) + ')'
+            return df
     except Exception as e:
-        st.error(f"Database read error: {e}")
+        st.error(f"Error fetching friends: {e}")
         return pd.DataFrame()
 
+def get_books() -> pd.DataFrame:
+    """Fetch available books with display string."""
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("SELECT ISBN, Title FROM Books WHERE IsInStock = 1 ORDER BY Title")
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(query, conn)
+            df['display'] = df['Title'] + ' (ISBN: ' + df['ISBN'] + ')'
+            return df
+    except Exception as e:
+        st.error(f"Error fetching available books: {e}")
+        return pd.DataFrame()
 
-def count_books():
-    """Return the number of books in the Books table."""
-    df = _run_query_df("SELECT COUNT(*) AS count FROM Books")
-    if not df.empty:
-        return df["count"].iloc[0]
-    return 0
-
-
-def list_loans():
-    """Return a DataFrame of active loans."""
-    sql = """
-    SELECT Loans.LoanID, Books.ISBN, Books.Title, Friends.FName, Friends.LName, 
-           Loans.BorrowDate, Loans.DueDate, Loans.ReminderDate
-    FROM Loans
-    JOIN Books ON Loans.ISBN = Books.ISBN
-    JOIN Friends ON Loans.FriendID = Friends.FriendID
-    WHERE Loans.Returned = 0
-    ORDER BY Loans.DueDate ASC
-    """
-    return _run_query_df(sql)
-
-
-def get_friends():
-    """Return a list of friends with display names for dropdowns."""
-    sql = """
-    SELECT FriendID, FName || ' ' || LName AS display
-    FROM Friends
-    ORDER BY LName, FName
-    """
-    return _run_query_df(sql)
-
-
-def get_books():
-    """Return a list of available books (not currently on loan)."""
-    sql = """
-    SELECT ISBN, Title || ' by ' || Author AS display
-    FROM Books
-    WHERE ISBN NOT IN (
-        SELECT ISBN FROM Loans WHERE Returned = 0
-    )
-    ORDER BY Title
-    """
-    return _run_query_df(sql)
-
-
-def get_friend_max_loans(friend_id):
-    """Return the remaining loan capacity for a friend."""
-    sql = """
-    SELECT MaxLoans - COUNT(l.ISBN) AS remaining_loans
-    FROM Friends f
-    LEFT JOIN Loans l ON f.FriendID = l.FriendID AND l.Returned = 0
-    WHERE f.FriendID = :fid
-    GROUP BY f.MaxLoans
-    """
-    df = _run_query_df(sql, {"fid": friend_id})
-    if not df.empty:
-        return df["remaining_loans"].iloc[0]
-    return None
-
-
-def get_loan_overdues():
-    """Return loans that are overdue."""
-    sql = """
-    SELECT Loans.LoanID, Books.Title, Friends.FName, Friends.LName,
-           Loans.BorrowDate, Loans.DueDate
-    FROM Loans
-    JOIN Books ON Loans.ISBN = Books.ISBN
-    JOIN Friends ON Loans.FriendID = Friends.FriendID
-    WHERE Loans.Returned = 0
-      AND Loans.DueDate < DATE('now')
-    ORDER BY Loans.DueDate ASC
-    """
-    return _run_query_df(sql)
-
-
-def get_friend_contact_info(friend_id):
-    """Return contact information for a specific friend."""
-    sql = """
-    SELECT type, contact
-    FROM Contacts
-    WHERE FriendID = :fid
-    """
-    return _run_query_df(sql, {"fid": friend_id})
-
-def count_borrowed_books():
-    """Return the total number of books currently on loan (not returned)."""
-    sql = """
-    SELECT COUNT(*) AS count
-    FROM Loans
-    WHERE Returned = 0
-    """
-    df = _run_query_df(sql)
-    if not df.empty:
-        return df["count"].iloc[0]
-    return 0
+def get_borrowed_books(friend_id: int) -> pd.DataFrame:
+    """Fetch books borrowed by a friend."""
+    if not friend_id:
+        return pd.DataFrame()
+    engine = _get_engine()
+    if not engine:
+        return pd.DataFrame()
+    query = text("""
+        SELECT B.ISBN, B.Title F
