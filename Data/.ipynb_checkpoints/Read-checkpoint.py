@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import (
-    create_engine, select, text, Table, MetaData, and_
+    create_engine, select, text, Table, MetaData, and_, func
 )
 from sqlalchemy.engine import Engine
 from typing import Optional
@@ -119,14 +119,15 @@ def read_books() -> pd.DataFrame:
         return pd.read_sql(query, conn)
 
 
-def count_books() -> int:
-    """Return total count of books in library."""
-    eng = _get_engine()
-    if not eng or Books is None:
+def count_books(engine: Engine) -> int:
+    """Return total count of books in the library."""
+    if engine is None or Books is None:
         return 0
-    query = select([text("COUNT(*)")]).select_from(Books)
-    with eng.connect() as conn:
-        result = conn.execute(text("SELECT COUNT(*) FROM Books"))
+
+    query = select(func.count()).select_from(Books)
+
+    with engine.connect() as conn:
+        result = conn.execute(query)
         return result.scalar_one()
 
 
