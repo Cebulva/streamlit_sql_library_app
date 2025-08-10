@@ -10,22 +10,6 @@ from datetime import datetime, timedelta
 # Path to your database file in the repo
 db_path = os.path.join(os.path.dirname(__file__), "library.db")
 
-# If your db is in Data/, adjust:
-# db_path = os.path.join(os.path.dirname(__file__), "Data", "library.db")
-
-#debug 
-db_path = os.path.join(os.path.dirname(__file__), "library.db")  # adjust if needed
-
-try:
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Books")
-    count = cursor.fetchone()[0]
-    conn.close()
-    st.success(f"Count from Books: {count}")
-except Exception as e:
-    st.error(f"SQLite error: {e}")
-
 # --- Page Configuration ---
 st.set_page_config(
     layout="wide",

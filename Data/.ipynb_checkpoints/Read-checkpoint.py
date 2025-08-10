@@ -73,11 +73,19 @@ def read_books():
     """
     return pd.read_sql(query, engine)
 
+# def count_books():
+#    if "engine" not in st.session_state or st.session_state.engine is None:
+#        return 0 # Return a number for consistency
+#    engine = st.session_state.engine
+#    return pd.read_sql("SELECT COUNT(*) AS count FROM Books", engine)["count"][0]
+
 def count_books():
-    if "engine" not in st.session_state or st.session_state.engine is None:
-        return 0 # Return a number for consistency
-    engine = st.session_state.engine
-    return pd.read_sql("SELECT COUNT(*) AS count FROM Books", engine)["count"][0]
+    from library_connection import engine
+    import pandas as pd
+    from sqlalchemy import text
+    
+    with engine.connect() as conn:
+        return pd.read_sql(text("SELECT COUNT(*) AS count FROM Books"), conn)["count"][0]
 
 def count_borrowed_books():
     if "engine" not in st.session_state or st.session_state.engine is None:
