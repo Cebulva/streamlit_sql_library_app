@@ -16,9 +16,10 @@ for key in ["show_add_book", "show_add_friend", "show_create_loan", "show_return
     if key not in st.session_state:
         st.session_state[key] = False
 
-# --- Store the engine in session state for other pages to use ---
-if "engine" not in st.session_state:
-    st.session_state.engine = engine
+# --- Check for Database Engine ---
+if "engine" not in st.session_state or st.session_state.engine is None:
+    st.error("Database connection has not been established. Please start the app from the main Home.py page.")
+    st.stop() # Stop the page from rendering further
 
 # --- Sidebar ---
 st.sidebar.title("Liane's Library")

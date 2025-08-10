@@ -2,15 +2,15 @@ import streamlit as st
 import pandas as pd
 import Read
 import Write
-import library_connection
+from library_connection import engine
 
 # --- Page Setup (MUST BE FIRST) ---
 st.set_page_config(layout="wide", page_title="Friends")
 
-# --- Check Connection Status ---
-if st.session_state.get("db_status") != "Connected":
-    st.info("You have been disconnected. Redirecting to login page...")
-    st.switch_page("Login.py")
+# --- Check for Database Engine ---
+if "engine" not in st.session_state or st.session_state.engine is None:
+    st.error("Database connection has not been established. Please start the app from the main Home.py page.")
+    st.stop() # Stop the page from rendering further
 
 # --- Sidebar ---
 st.sidebar.button("Disconnect", on_click=library_connection.disconnect_db)
