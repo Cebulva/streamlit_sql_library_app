@@ -4,6 +4,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 import Read
 import Write
+import library_connection
+
+# --- Initialize DB Engine ---
+engine = library_connection.get_engine()
 
 # --- Page Configuration ---
 st.set_page_config(

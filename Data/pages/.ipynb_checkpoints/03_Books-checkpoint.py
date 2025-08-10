@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import Read
 import Write
-import library_connection # ✅ Add this line
+import library_connection
+
+# --- Initialize DB Engine ---
+engine = library_connection.get_engine()
 
 # --- PAGE CONFIG ---
 st.set_page_config("📚 Manage Books", layout="wide")

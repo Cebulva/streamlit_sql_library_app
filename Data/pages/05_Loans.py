@@ -4,7 +4,10 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 import Read
 import Write
-from library_connection import engine
+import library_connection
+
+# --- Initialize DB Engine ---
+engine = library_connection.get_engine()
 
 # --- Page Setup (MUST BE FIRST) ---
 st.set_page_config(layout="wide", page_title="Loans")
