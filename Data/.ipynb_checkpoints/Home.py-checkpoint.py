@@ -1,8 +1,29 @@
+import sqlite3
+import os
+
 import streamlit as st
 from library_connection import engine
 import Read
 import Write
 from datetime import datetime, timedelta
+
+# Path to your database file in the repo
+db_path = os.path.join(os.path.dirname(__file__), "library.db")
+
+# If your db is in Data/, adjust:
+# db_path = os.path.join(os.path.dirname(__file__), "Data", "library.db")
+
+#debug 
+if not os.path.exists(db_path):
+    st.error(f"Database file not found at: {db_path}")
+else:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    st.write("Tables found in DB:", tables)
 
 # --- Page Configuration ---
 st.set_page_config(
