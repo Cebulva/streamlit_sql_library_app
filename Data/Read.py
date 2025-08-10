@@ -58,8 +58,19 @@ def read_books():
     if "engine" not in st.session_state or st.session_state.engine is None:
         return pd.DataFrame()
     engine = st.session_state.engine
-    # ✅ Replaced MySQL's CONCAT() with SQLite's || operator
-    query = "SELECT ISBN, Title, Author, Genre, IsInStock, BookCondition as 'Condition', ShelfLocation || ' ' || ShelfRow as Location FROM Books ORDER BY Title"
+
+    query = """
+        SELECT 
+            ISBN, 
+            Title, 
+            Author, 
+            Genre, 
+            IsInStock, 
+            BookCondition as 'Condition', 
+            ShelfLocation || ' ' || ShelfRow as Location 
+        FROM Books 
+        ORDER BY Title
+    """
     return pd.read_sql(query, engine)
 
 def count_books():
