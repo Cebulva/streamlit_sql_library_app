@@ -1,8 +1,9 @@
+# library_connection.py
 import os
 from sqlalchemy import create_engine
 
-# Determine location relative to this file
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(PROJECT_ROOT, "library.db")
+# Absolute path to the SQLite database file
+DB_PATH = os.path.join(os.path.dirname(__file__), "library.db")
 
-engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+# SQLAlchemy engine for SQLite database, echo=False for production
+engine = create_engine(f"sqlite:///{DB_PATH}", echo=False, future=True)
