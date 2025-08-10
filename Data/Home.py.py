@@ -1,9 +1,7 @@
 # Home.py
-import os
 import streamlit as st
 from datetime import datetime, timedelta
 
-from library_connection import engine
 import Read
 import Write
 
@@ -19,8 +17,7 @@ for key in ["show_add_book", "show_add_friend", "show_create_loan", "show_return
     if key not in st.session_state:
         st.session_state[key] = False
 
-if "engine" not in st.session_state:
-    st.session_state.engine = engine
+if "db_status" not in st.session_state:
     st.session_state.db_status = "Connected"
 
 # --- Sidebar ---
@@ -31,14 +28,17 @@ if "success_message" in st.session_state:
     st.success(st.session_state.pop("success_message"))
 
 # --- Page Title ---
-st.markdown("<h1 style='text-align: center;'>📚 📖 📕 📚 📘 📙 Welcome To Liane's Library 📗 📖 📙 📚 📘 📖</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align: center;'>📚 📖 📕 📚 📘 📙 Welcome To Liane's Library 📗 📖 📙 📚 📘 📖</h1>",
+    unsafe_allow_html=True
+)
 
 # --- Library Overview Metrics ---
 with st.expander("Library Overview", expanded=True):
-    total_books = Read.count_books(st.session_state.engine)
-    borrowed_books = Read.count_borrowed_books(st.session_state.engine)
+    total_books = Read.count_books()
+    borrowed_books = Read.count_borrowed_books()
     available_books = total_books - borrowed_books
-    overdue_books = Read.count_overdue_books(st.session_state.engine)
+    overdue_books = Read.count_overdue_books()
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Books", total_books)
@@ -50,7 +50,7 @@ st.markdown("---")
 
 # --- Daily Reminders Section ---
 st.subheader("Daily Reminders 🗓️")
-reminders_df = Read.get_daily_reminders(st.session_state.engine)
+reminders_df = Read.get_daily_reminders()
 
 if reminders_df.empty:
     st.info("No reminders for today. All caught up! ✅")
@@ -107,11 +107,11 @@ col4.button("🧑‍🤝‍🧑 Add Friend", on_click=set_active_expander, args=
 if st.session_state.show_create_loan:
     with st.expander("Create a New Loan", expanded=True):
         with st.form("create_loan_form", clear_on_submit=True):
-            friends_df = Read.get_friends(st.session_state.engine)
+            friends_df = Read.get_friends()
             friend_display_list = friends_df['display'].tolist()
             selected_friend_display = st.selectbox("Search for a friend", options=friend_display_list, placeholder="Select a friend...")
 
-            books_df = Read.get_books(st.session_state.engine)
+            books_df = Read.get_books()
             book_display_list = books_df['display'].tolist()
             selected_book_display = st.selectbox("Search for an available book", options=book_display_list, placeholder="Select a book...")
 
@@ -134,9 +134,13 @@ if st.session_state.show_create_loan:
 # --- Return Book Expander ---
 if st.session_state.show_return_book:
     with st.expander("Return a Book", expanded=True):
-        loans_df = Read.list_loans(st.session_state.engine)
+        loans_df = Read.list_loans()
         if not loans_df.empty:
-            loans_df['display'] = "Loan #" + loans_df['LoanID'].astype(str) + ": '" + loans_df['Title'] + "' to " + loans_df['FName'] + " " + loans_df['LName']
+            loans_df['display'] = (
+                "Loan #" + loans_df['LoanID'].astype(str) +
+                ": '" + loans_df['Title'] + "' to " +
+                loans_df['FName'] + " " + loans_df['LName']
+            )
             loan_display_list = loans_df['display'].tolist()
             selected_loan_display = st.selectbox("Select the loan to return", options=loan_display_list, placeholder="Select a loan...")
 
@@ -168,7 +172,7 @@ if st.session_state.show_add_book:
             if st.form_submit_button("💾 Save Book"):
                 if not all([isbn, title, author, genre]):
                     st.error("Please fill in all required fields.")
-                elif Read.book_exists(isbn, st.session_state.engine):
+                elif Read.book_exists(isbn):
                     st.warning(f"A book with ISBN {isbn} already exists.")
                 else:
                     if Write.create_book(isbn, title, author, genre, book_condition, shelf_location, int(shelf_row)):
@@ -183,3 +187,5 @@ if st.session_state.show_add_friend:
             st.session_state.home_new_contacts = [{"type": "", "contact": ""}]
         if 'home_add_fname' not in st.session_state:
             st.session_state.home_add_fname = ""
+
+        # Add your friend form implementation here as needed
