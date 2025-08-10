@@ -44,7 +44,20 @@ else:
     st.warning(f"You have {len(grouped)} reminder(s) to send today:")
 
     for (loan_id, friend_id, fname, lname, title, due_date), contacts in grouped:
-        st.info(f"**{fname} {lname}** needs a reminder about returning **'{title}'**. It's due on **{due_date.strftime('%Y-%m-%d')}**.")
+        # Ensure due_date is a proper datetime object
+        if pd.isnull(due_date):
+            due_date_str = "unknown due date"
+        elif isinstance(due_date, str):
+            try:
+                due_date_dt = pd.to_datetime(due_date)
+                due_date_str = due_date_dt.strftime('%Y-%m-%d')
+            except Exception:
+                due_date_str = due_date  # fallback to string itself
+        else:
+            due_date_str = due_date.strftime('%Y-%m-%d')
+
+        st.info(f"**{fname} {lname}** needs a reminder about returning **'{title}'**. It's due on **{due_date_str}**.")
+        
         contact_info = contacts[['type', 'contact']].drop_duplicates().reset_index(drop=True)
 
         contact_cols = st.columns(len(contact_info))
