@@ -106,32 +106,23 @@ col3.button("📚 Add Book", on_click=set_active_expander, args=("show_add_book"
 col4.button("🧑‍🤝‍🧑 Add Friend", on_click=set_active_expander, args=("show_add_friend",), use_container_width=True)
 
 # --- Create Loan Expander ---
-if st.session_state.show_create_loan:
-    with st.expander("Create a New Loan", expanded=True):
-        with st.form("create_loan_form", clear_on_submit=True):
-            friends_df = Read.get_friends()
-            friend_display_list = friends_df['display'].tolist()
-            selected_friend_display = st.selectbox("Search for a friend", options=friend_display_list, placeholder="Select a friend...")
+if st.form_submit_button("Create Loan"):
+    if selected_friend_display and selected_book_display:
+        selected_friend_id = friends_df[friends_df['display'] == selected_friend_display]['FriendID'].iloc[0]
+        selected_isbn = books_df[books_df['display'] == selected_book_display]['ISBN'].iloc[0]
+        if Write.create_loan_entry(borrow_date, due_date, reminder_date, selected_isbn, selected_friend_id):
+            st.session_state.success_message = "Loan created successfully!"
+            st.cache_data.clear()
+            # Use a flag to prevent infinite rerun loops:
+            if "just_created_loan" not in st.session_state:
+                st.session_state.just_created_loan = True
+                st.experimental_rerun()
+    else:
+        st.error("Please select both a friend and a book.")
 
-            books_df = Read.get_books()
-            book_display_list = books_df['display'].tolist()
-            selected_book_display = st.selectbox("Search for an available book", options=book_display_list, placeholder="Select a book...")
-
-            today = datetime.now().date()
-            borrow_date = st.date_input("Borrow Date", value=today)
-            due_date = st.date_input("Due Date", value=today + timedelta(days=14))
-            reminder_date = st.date_input("Return Reminder Date", value=due_date - timedelta(days=3))
-
-            if st.form_submit_button("Create Loan"):
-                if selected_friend_display and selected_book_display:
-                    selected_friend_id = friends_df[friends_df['display'] == selected_friend_display]['FriendID'].iloc[0]
-                    selected_isbn = books_df[books_df['display'] == selected_book_display]['ISBN'].iloc[0]
-                    if Write.create_loan_entry(borrow_date, due_date, reminder_date, selected_isbn, selected_friend_id):
-                        st.session_state.success_message = "Loan created successfully!"
-                        st.cache_data.clear()
-                        st.experimental_rerun()
-                else:
-                    st.error("Please select both a friend and a book.")
+# Reset the flag after rerun so that future submits work:
+if "just_created_loan" in st.session_state:
+    del st.session_state.just_created_loan
 
 # --- Return Book Expander ---
 if st.session_state.show_return_book:
