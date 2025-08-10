@@ -98,3 +98,15 @@ def get_friend_contact_info(friend_id):
     WHERE FriendID = :fid
     """
     return _run_query_df(sql, {"fid": friend_id})
+
+def count_borrowed_books():
+    """Return the total number of books currently on loan (not returned)."""
+    sql = """
+    SELECT COUNT(*) AS count
+    FROM Loans
+    WHERE Returned = 0
+    """
+    df = _run_query_df(sql)
+    if not df.empty:
+        return df["count"].iloc[0]
+    return 0
