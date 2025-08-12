@@ -146,4 +146,4 @@ This project was a collaborative effort. I would like to thank the following ind
 
 - [@camontefusco](https://github.com/camontefusco/): Carlos Montefusco
 - [@victoria-vasilieva](https://github.com/victoria-vasilieva): Victoria Vasilieva
-- Azumi Muhammed
+- [@azumimuhammed](https://github.com/AzumiMuhammed):Azumi Muhammed
